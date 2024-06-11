@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5001/api';
+const API_URL = 'http://localhost:3001/api';
 
 const axiosInstance = axios.create({
   withCredentials: true  // This allows sending cookies cross-origin

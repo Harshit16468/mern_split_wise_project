@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import otpService from '../services/otpService';
 import Message from './Message';
+import { BrowserRouter as Router, Route, Routes, useNavigate, useLocation } from 'react-router-dom';
 
 function OtpForm() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const sendOtp = () => {
     otpService.sendOtp(email)
@@ -22,6 +24,7 @@ function OtpForm() {
     otpService.verifyOtp(email, otp)
       .then(response => {
         setMessage('Login successful');
+        navigate('/login');
       })
       .catch(error => {
         console.error(error);
