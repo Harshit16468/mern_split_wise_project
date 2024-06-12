@@ -3,7 +3,41 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const session = require('express-session');
 const otpRoutes = require('./routes/otpRoutes');
+const otpRoutes1 = require('./routes/otpRoutes1');
 const axios = require('axios');
+const encodeURIComponent = require('querystring').escape;
+
+const rawPassword = 'Harshit@123';
+const encodedPassword = encodeURIComponent(rawPassword);
+
+const uri = `mongodb+srv://harshit:${encodedPassword}@cluster0.csw5jmw.mongodb.net/split?retryWrites=true&w=majority&appName=Cluster0`;
+const dbName = "split";
+let db;
+const { MongoClient, ServerApiVersion } = require('mongodb');
+
+
+async function initializeDatabase() {
+    try {
+      const client = new MongoClient(uri, {
+        serverApi: {
+          version: ServerApiVersion.v1,
+          strict: true,
+          deprecationErrors: true,
+        }
+      });
+        await client.connect();
+        console.log("Connected to MongoDB");
+
+        db = client.db(dbName);
+        await db.createCollection("split");
+        console.log("Collection created!");
+    } catch (err) {
+        console.error("Failed to initialize database:", err);
+    }
+}
+
+initializeDatabase();
+
 
 const app = express();
 const port = 3001;
@@ -21,7 +55,7 @@ app.use(session({
 }));
 
 app.use('/api', otpRoutes);
-
+app.use('/apilogin',otpRoutes1)
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });

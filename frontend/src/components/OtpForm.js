@@ -16,7 +16,7 @@ function OtpForm() {
       })
       .catch(error => {
         console.error(error);
-        setMessage('Error sending OTP');
+        setMessage(error.response.data);
       });
   };
 
@@ -25,6 +25,7 @@ function OtpForm() {
       .then(response => {
         setMessage('Login successful');
         navigate('/login');
+
       })
       .catch(error => {
         console.error(error);
@@ -34,7 +35,7 @@ function OtpForm() {
 
   return (
     <div>
-      <h2>Login with OTP</h2>
+      <h2>Signup with OTP</h2>
       <input
         type="email"
         placeholder="Enter your email"
