@@ -56,16 +56,25 @@ app.get('/contacts', async (req, res) => {
   const { access_token } = req.query;
   console.log("the token is ",access_token);
   try {
-      const response = await axios.get('https://people.googleapis.com/v1/people/me/connections', {
-          params: {
-              personFields: 'names,emailAddresses,phoneNumbers', // Include phone numbers
-          },
-          headers: {
-              Authorization: `Bearer ${access_token}`,
-          },
-      });
-
-      res.send(response.data);
+      let allContacts = [];
+      let nextPageToken = null;
+      
+      do {
+          const response = await axios.get('https://people.googleapis.com/v1/people/me/connections', {
+              params: {
+                  personFields: 'names,emailAddresses,phoneNumbers', // Include phone numbers
+                  pageToken: nextPageToken, // Token for the next page of results
+              },
+              headers: {
+                  Authorization: `Bearer ${access_token}`,
+              },
+          });
+          if (response.data.connections) {
+              allContacts = allContacts.concat(response.data.connections);
+          }
+          nextPageToken = response.data.nextPageToken;
+      } while (nextPageToken);
+      res.send(allContacts)
   } catch (error) {
       // console.log(error);
       res.status(500).send(error);

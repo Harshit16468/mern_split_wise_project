@@ -15,10 +15,8 @@ const Contacts = () => {
                             access_token: token,
                         },
                     });
-                    console.log(response);
-
                     // Process the response to create simplified contacts array with IDs
-                    const processedContacts = response.data.connections
+                    const processedContacts = response.data
                         .filter(contact => contact.emailAddresses && contact.emailAddresses.length > 0)
                         .map((contact, index) => ({
                             id: index + 1, // Assign incrementing ID starting from 1
