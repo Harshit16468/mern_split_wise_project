@@ -92,13 +92,14 @@ exports.sendOtp = async (req, res) => {
 async function insertDocument(email) {
   let client;
   try {
-    client = await   MongoClient(uri, {
+    client = lient = new MongoClient(uri, {
       serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
         deprecationErrors: true,
       }
     });
+  await client.connect();
     console.log("Connected to MongoDB");
 
     const db = client.db(dbName);
