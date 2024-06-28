@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const Contacts = () => {
     const [contacts, setContacts] = useState([]);
+    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+    const [selectedContacts, setSelectedContacts] = useState([]);
+    const [groupName, setGroupName] = useState('');
 
     useEffect(() => {
         const fetchContacts = async () => {
@@ -34,14 +37,67 @@ const Contacts = () => {
         fetchContacts();
     }, []);
 
+    const handleCheckboxChange = (name, email) => {
+        const contactIdentifier = `${name}-${email}`;
+        setSelectedContacts(prevSelectedContacts => 
+            prevSelectedContacts.includes(contactIdentifier)
+                ? prevSelectedContacts.filter(id => id !== contactIdentifier)
+                : [...prevSelectedContacts, contactIdentifier]
+        );
+    };
+
+    const handleCreateGroupClick = () => {
+        setIsCreatingGroup(true);
+    };
+
+    const handleGroupNameChange = (event) => {
+        setGroupName(event.target.value);
+    };
+
+    const handleSubmitGroup = () => {
+        axios.post('http://localhost:3001/create-group', { groupName, contacts: selectedContacts })
+            .then(response => {
+                console.log(response.data);
+                // Handle success response
+            })
+            .catch(error => {
+                console.error(error);
+                // Handle error response
+            });
+        setIsCreatingGroup(false);
+        setSelectedContacts([]);
+        setGroupName('');
+    };
+
     return (
         <div>
             <h1>Contacts</h1>
             <ul>
                 {contacts.map(contact => (
-                    <li key={contact.id}>{contact.id}: {contact.name} {contact.email} </li>
+                    <li key={`${contact.name}-${contact.email}`}>
+                        {isCreatingGroup && 
+                            <input 
+                                type="checkbox" 
+                                checked={selectedContacts.includes(`${contact.name}-${contact.email}`)} 
+                                onChange={() => handleCheckboxChange(contact.name, contact.email)}
+                            />
+                        }
+                        {contact.name}: {contact.email}
+                    </li>
                 ))}
             </ul>
+            <button onClick={handleCreateGroupClick}>Create Group</button>
+            {isCreatingGroup && (
+                <div>
+                    <input 
+                        type="text" 
+                        placeholder="Group Name" 
+                        value={groupName} 
+                        onChange={handleGroupNameChange} 
+                    />
+                    <button onClick={handleSubmitGroup}>Submit</button>
+                </div>
+            )}
         </div>
     );
 };

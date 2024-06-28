@@ -114,3 +114,21 @@ app.get('/contacts', async (req, res) => {
       res.status(500).send(error);
   }
 });
+
+
+app.post('/create-group', (req, res) => {
+  const { groupName, contacts } = req.body;
+
+  console.log('Received data:', { groupName, contacts });
+
+  if (!groupName || !contacts) {
+      return res.status(400).send('Group name and contacts are required');
+  }
+
+  const newGroup = {
+      name: groupName,
+      contacts,
+  };
+
+  res.status(201).send({ message: 'Group created successfully' , newGroup});
+});
