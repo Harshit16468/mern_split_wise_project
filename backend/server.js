@@ -1,24 +1,24 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const session = require('express-session');
-const otpRoutes = require('./routes/otpRoutes');
-const otpRoutes1 = require('./routes/otpRoutes1');
-const axios = require('axios');
-const encodeURIComponent = require('querystring').escape;
+var express = require('express');
+var bodyParser = require('body-parser');
+var cors = require('cors');
+var session = require('express-session');
+var otpRoutes = require('./routes/otpRoutes');
+var otpRoutes1 = require('./routes/otpRoutes1');
+var axios = require('axios');
+var encodeURIComponent = require('querystring').escape;
 
-const rawPassword = 'Harshit@123';
-const encodedPassword = encodeURIComponent(rawPassword);
+var rawPassword = 'Harshit@123';
+var encodedPassword = encodeURIComponent(rawPassword);
 
-const uri = `mongodb+srv://harshit:${encodedPassword}@cluster0.csw5jmw.mongodb.net/split?retryWrites=true&w=majority&appName=Cluster0`;
-const dbName = "split";
-let db;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+var uri = `mongodb+srv://harshit:${encodedPassword}@cluster0.csw5jmw.mongodb.net/split?retryWrites=true&w=majority&appName=Cluster0`;
+var dbName = "split";
+var db;
+var { MongoClient, ServerApiVersion } = require('mongodb');
 
 
 async function initializeDatabase() {
     try {
-      const client = new MongoClient(uri, {
+      var client = new MongoClient(uri, {
         serverApi: {
           version: ServerApiVersion.v1,
           strict: true,
@@ -39,8 +39,8 @@ async function initializeDatabase() {
 initializeDatabase();
 
 
-const app = express();
-const port = 3001;
+var app = express();
+var port = 3001;
 
 app.use(bodyParser.json());
 app.use(cors({
@@ -59,55 +59,157 @@ app.use('/apilogin',otpRoutes1)
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+async function queryDatabase(email) {
+  var client;
+  try {
+      client = new MongoClient(uri, {
+          serverApi: {
+            version: ServerApiVersion.v1,
+            strict: true,
+            deprecationErrors: true,
+          }
+        });
+      await client.connect();
+      console.log("Connected to MongoDB");
+
+      var db = client.db(dbName);
+      var query = { email: email };
+
+      var result = await db.collection("split").find(query).toArray();
+      return result;
+
+  } catch (err) {
+      console.error("Failed to query the database:", err);
+      return false;
+  } finally {
+      if (client) {
+          await client.close();
+      }
+  }
+}
 app.post('/oauth2callback', async (req, res) => {
-  const { code } = req.body;
+  function isPlainObject(obj) {
+    return typeof obj === 'object' && obj !== null && !Array.isArray(obj);
+  }
+  console.log(isPlainObject(req.body))
+  console.log(req.body);
+  var  code  = req.body.codes;
+  var email=req.body.email;
   console.log("the code is ",code);
-  const clientId = '716338759481-3t52ihgb9pa4ifk96mjnlehh8c0idr07.apps.googleusercontent.com';
-  const clientSecret = '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';
-  const redirectUri = 'http://localhost:3000/oauth/callback';
+  console.log(email);
+
 
   try {
-      const response = await axios.post('https://oauth2.googleapis.com/token', {
-          code,
-          client_id: clientId,
-          client_secret: clientSecret,
-          redirect_uri: redirectUri,
-          grant_type: 'authorization_code',
-      });
 
-      const { access_token } = response.data;
-      res.send({ access_token });
-      console.log("done succesful");
+  
+
+      try {
+        var allContacts = [];
+        var nextPageToken = null;
+        
+        do {
+            var response = await axios.get('https://people.googleapis.com/v1/people/me/connections', {
+                params: {
+                    personFields: 'emailAddresses', // Include phone numbers
+                    pageToken: nextPageToken, // Token for the next page of results
+                },
+                headers: {
+                    Authorization: `Bearer ${code}`,
+                },
+            });
+            if (response.data.connections) {
+                allContacts = allContacts.concat(response.data.connections);
+            }
+            nextPageToken = response.data.nextPageToken;
+        } while (nextPageToken);
+        console.log("hello");
+        var query = { email: email };
+        var result=await queryDatabase(email);
+        allContacts = allContacts.filter(contact => contact.emailAddresses && contact.emailAddresses.length > 0);
+        result=result[0]
+        var friends=[];
+        console.log(allContacts);
+        console.log(result);
+        if((Array.isArray(result.friends))){
+          friends=result.friends;}
+          else{
+
+          }
+          console.log(allContacts.length)
+          for(var i=0;i<allContacts.length;i++){
+            console.log(allContacts[i].emailAddresses);
+            for (var j=0;j<allContacts[i].emailAddresses.length;j++)
+              {
+              if (friends.includes(allContacts[i].emailAddresses[j].value))
+              {
+                continue
+              }
+              if(allContacts[i].emailAddresses[j].value==email)
+              {
+                continue
+              }
+
+              query={email:allContacts[i].emailAddresses[j].value}
+              // var result = await db.collection("split").find(query).toArray();
+              // console.log("hello");
+              // console.log(result);
+              // if(result.length==0)
+              // {
+              //   continue
+              // }
+              // else{
+                friends.push(allContacts[i].emailAddresses[j].value);
+                console.log(allContacts[i].emailAddresses[j].value)
+                break
+
+              // }
+            }
+          }
+            console.log("here")
+            console.log(friends)
+          
+
+            await db.collection("split").updateOne(
+              { email: email },  // Filter criteria
+              { $set: { friends: friends } }  // Update operation
+          );
+          if(!Array.isArray(result.groups)){
+            await db.collection("split").updateOne(
+              { email: email },  // Filter criteria
+              { $set: { groups: [] } }  // Update operation
+          );          }
+
+        
+        res.send("done")
+    } catch (error) {
+        // console.log(error);
+        res.status(500).send(error);
+    }
+
 
   } catch (error) {
       res.status(500).send(error);
       console.log("not done succesful");
+      console.log(error)
 
   }
 });
 
 app.get('/contacts', async (req, res) => {
-  const { access_token } = req.query;
-  console.log("the token is ",access_token);
+  var { email } = req.query;
   try {
-      let allContacts = [];
-      let nextPageToken = null;
-      
-      do {
-          const response = await axios.get('https://people.googleapis.com/v1/people/me/connections', {
-              params: {
-                  personFields: 'names,emailAddresses,phoneNumbers', // Include phone numbers
-                  pageToken: nextPageToken, // Token for the next page of results
-              },
-              headers: {
-                  Authorization: `Bearer ${access_token}`,
-              },
-          });
-          if (response.data.connections) {
-              allContacts = allContacts.concat(response.data.connections);
-          }
-          nextPageToken = response.data.nextPageToken;
-      } while (nextPageToken);
+    console.log(email);
+
+    var result = await queryDatabase(email);
+    result=result[0];
+    var allContacts=[];
+    if(Array.isArray(result.friends)){
+      allContacts= result.friends;
+
+    }
+    else{
+
+    }
       res.send(allContacts)
   } catch (error) {
       // console.log(error);
@@ -117,7 +219,7 @@ app.get('/contacts', async (req, res) => {
 
 
 app.post('/create-group', (req, res) => {
-  const { groupName, contacts } = req.body;
+  var { groupName, contacts } = req.body;
 
   console.log('Received data:', { groupName, contacts });
 
@@ -125,7 +227,7 @@ app.post('/create-group', (req, res) => {
       return res.status(400).send('Group name and contacts are required');
   }
 
-  const newGroup = {
+  var newGroup = {
       name: groupName,
       contacts,
   };

@@ -34,6 +34,7 @@ async function queryDatabase(email) {
         const query = { email: email };
 
         const result = await db.collection("split").find(query).toArray();
+        
 
         if (result.length === 0) {
             console.log("No documents found");
@@ -92,6 +93,7 @@ exports.sendOtp = async (req, res) => {
 exports.verifyOtp = (req, res) => {
     const { email, otp } = req.body;
     console.log(otp);
+    console.log(email)
     if (req.session.otp === otp && req.session.email === email) {
         return res.status(200).send('Sign up successful');
     } else {

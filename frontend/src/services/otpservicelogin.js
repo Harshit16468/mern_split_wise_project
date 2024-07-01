@@ -1,17 +1,17 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:3001/apilogin';
+let API_URL = 'http://localhost:3001/api';
 
 const axiosInstance = axios.create({
   withCredentials: true  // This allows sending cookies cross-origin
 });
 
-const sendOtp = (email) => {
-  return axiosInstance.post(`${API_URL}/send-otp`, { email });
+const sendOtp = (email,title) => {
+  return axiosInstance.post(`${API_URL+title}/send-otp`, { email });
 };
 
-const verifyOtp = (email, otp) => {
-  return axiosInstance.post(`${API_URL}/verify-otp`, { email, otp });
+const verifyOtp = (email, otp,title) => {
+  return axiosInstance.post(`${API_URL+title}/verify-otp`, { email, otp });
 };
 
 export default { sendOtp, verifyOtp };

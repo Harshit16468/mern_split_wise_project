@@ -57,7 +57,8 @@ exports.sendOtp = async (req, res) => {
   const { email } = req.body;
   try {
     const result = await queryDatabase(email);
-
+    console.log("hello");
+    console.log(result);
     if (result) {
       console.log("User exists, sending error response");
       return res.status(500).send('Please Login');
@@ -103,7 +104,7 @@ async function insertDocument(email) {
     console.log("Connected to MongoDB");
 
     const db = client.db(dbName);
-    const myobj = { email: email, friends: "", groups: "" };
+    const myobj = { email: email, friends: [], groups: [] };
 
     const result = await db.collection("split").insertOne(myobj);
     console.log("1 document inserted", result.insertedId);
