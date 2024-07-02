@@ -30,6 +30,7 @@ async function initializeDatabase() {
 
         db = client.db(dbName);
         await db.createCollection("split");
+        await db.createCollection("groups"); 
         console.log("Collection created!");
     } catch (err) {
         console.error("Failed to initialize database:", err);
@@ -218,19 +219,51 @@ app.get('/contacts', async (req, res) => {
 });
 
 
-app.post('/create-group', (req, res) => {
-  var { groupName, contacts } = req.body;
+app.post('/create-group', async (req, res) => {
+  var { groupName, contacts,creator } = req.body;
 
-  console.log('Received data:', { groupName, contacts });
-
-  if (!groupName || !contacts) {
-      return res.status(400).send('Group name and contacts are required');
+  for (const email of contacts) 
+  {
+    var contact = await queryDatabase(email);
+    console.log(contact)
+    if (!contact || (Array.isArray(contact) && contact.length === 0))
+    {
+      return res.status(400).json({ error: `Email ${email} does not exist` });
+    }
   }
+  try {
+    // Create a new group
+    var newGroup = {
+        name: groupName,
+        members: [...contacts, creator],
+        creator: creator
+    };
 
-  var newGroup = {
-      name: groupName,
-      contacts,
-  };
+    // Insert the new group into the groups collection
+    var result = await db.collection("groups").insertOne(newGroup);
 
-  res.status(201).send({ message: 'Group created successfully' , newGroup});
+    if (result.insertedId) {
+        // Update each member's record with the new group ID
+        var bulkOps = [...contacts, creator].map(email => ({
+            updateOne: {
+                filter: { email: email },
+                update: { 
+                    $addToSet: { groups: result.insertedId.toString() }
+                }
+            }
+        }));
+
+        await db.collection("split").bulkWrite(bulkOps);
+
+        res.status(201).json({ 
+            message: 'Group created successfully and member records updated',
+            groupId: result.insertedId
+        });
+    } else {
+        res.status(500).send('Failed to create group');
+    }
+} catch (error) {
+    console.error("Error creating group or updating member records:", error);
+    res.status(500).send('An error occurred while creating the group or updating member records');
+}
 });
