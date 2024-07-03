@@ -7,7 +7,7 @@ const Contacts = () => {
   const [selectedContacts, setSelectedContacts] = useState([]);
   const [groupName, setGroupName] = useState("");
   const location = useLocation();
-  const emailFromLogin = location.state?.emailFromLogin;
+  const emailFromLogin = location.state?.email;
   console.log("i am sanchit");
   console.log(emailFromLogin);
 

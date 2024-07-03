@@ -13,7 +13,8 @@ var encodedPassword = encodeURIComponent(rawPassword);
 var uri = `mongodb+srv://harshit:${encodedPassword}@cluster0.csw5jmw.mongodb.net/split?retryWrites=true&w=majority&appName=Cluster0`;
 var dbName = "split";
 var db;
-var { MongoClient, ServerApiVersion } = require('mongodb');
+var { MongoClient, ServerApiVersion, ObjectId, Transaction } = require('mongodb');
+const { group } = require('console');
 
 
 async function initializeDatabase() {
@@ -31,6 +32,7 @@ async function initializeDatabase() {
         db = client.db(dbName);
         await db.createCollection("split");
         await db.createCollection("groups"); 
+        await db.createCollection("transactions")
         console.log("Collection created!");
     } catch (err) {
         console.error("Failed to initialize database:", err);
@@ -266,4 +268,172 @@ app.post('/create-group', async (req, res) => {
     console.error("Error creating group or updating member records:", error);
     res.status(500).send('An error occurred while creating the group or updating member records');
 }
+});
+app.get('/groups', async (req, res) => {
+  try {
+      var { email } = req.query;
+      var contact = await queryDatabase(email);
+      if (!contact) {
+          return res.status(404).send('Contact not found');
+      }
+      contact=contact[0];
+
+      var groupIds = contact.groups;
+      var groups = [];
+      console.log(contact)
+
+      for (var i = 0; i < groupIds.length; i++) {
+        var ad={
+          groupName:'',
+          groupid:''
+        };
+          var group = await db.collection("groups").findOne({ _id: new ObjectId(groupIds[i]) });
+          console.log(group);
+          ad.groupName=group.name;
+          ad.groupid=groupIds[i];
+          groups.push(ad);
+      }
+
+      res.status(200).json(groups);
+  } catch (error) {
+      console.error("Error fetching groups:", error);
+      res.status(500).send('Internal Server Error');
+  }
+});
+app.post('/friends',async(req,res)=>{
+  try {
+    console.log(req.body);
+    var  emailf  = req.body.emailfriend;
+    var email=req.body.email;
+    var result =await queryDatabase(emailf);
+    if(result.length==0){
+      res.status(500).send('error');
+    }
+    else{
+      result=await queryDatabase(email);
+      result=result[0];
+      console.log(result);
+      var allContacts=result.friends;
+      if(allContacts.includes(emailf)){
+
+      }
+      else{
+        allContacts.push(emailf);
+        await db.collection("split").updateOne(
+          { email: email },  // Filter criteria
+          { $set: { friends: allContacts } }  // Update operation
+      );
+      }
+      res.status(200).send('done');
+    }
+
+  }
+  catch(err){
+    console.log(err);
+    res.status(500).send('error');
+  }
+});
+async function queryDatabase1(id) {
+  let client;
+
+  try {
+    client = new MongoClient(uri, {
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      }
+    });
+
+    await client.connect();
+    console.log("Connected to MongoDB");
+
+    const db = client.db(dbName);
+    const result = await db.collection("groups").findOne({ _id: new ObjectId(id) });
+
+    return result;
+
+  } catch (err) {
+    console.error("Failed to query the database:", err);
+    return false;
+  } finally {
+    if (client) {
+      await client.close();
+    }
+  }
+}
+app.get('/members', async(req,res)=>{
+  try{
+    var { email } = req.query;
+    var{id}=req.query;
+    var result=await queryDatabase1(id);
+    var a=[];
+    for (var i=0;i<result.members.length;i++){
+      if(email===result.members[i]){
+        continue
+      }
+      a.push(result.members[i]);
+    }
+    res.status(200).send(a);
+
+  }
+  catch(error){
+    console.log(error);
+    res.status(500).send("error");
+  }
+});
+app.post('/transactions',async(req,res)=>{
+  console.log(req.body);
+  var id=req.body.group;
+  var amount=req.body.amount;
+  var fullamount=req.body.isFullAmountOwed;
+  var selectedpeople=req.body.selectedPeople;
+  var email=req.body.towhom;
+  try {
+    let result = fullamount ? amount / selectedpeople.length : amount / (selectedpeople.length + 1);
+
+    // Create a new group
+    var newtransaction = {
+        group: id,
+        involved: [selectedpeople],
+        towhom: email,
+        amount: result
+    };
+
+    // Insert the new group into the groups collection
+       await db.collection("transactions").insertOne(newtransaction);
+
+        // Update each member's record with the new group ID
+
+
+
+        res.status(200).json("transaction added");
+} catch (error) {
+    console.error("Error creating group or updating member records:", error);
+    res.status(500).send('An error occurred while creating the group or updating member records');
+}
+})
+async function fetch(id) {
+  try {
+      const result = await db.collection('transactions').find({ group: id }).toArray();
+      const r1=await db.collection('transactions').find().toArray();
+      console.log(r1);
+      return result;
+  } catch (err) {
+      return -1;
+  }
+}
+app.get('/transactions', async (req, res) => {
+  try {
+      const { id } = req.query;
+      const result = await fetch(id);
+      if (result === -1) {
+          res.status(500).send('Error fetching transactions');
+      } else {
+        console.log(result,"here");
+          res.send(result);
+      }
+  } catch (error) {
+      res.status(500).send(error);
+  }
 });
