@@ -489,3 +489,85 @@ app.post("/summary", async (req, res) => {
     res.status(500).send("An error occurred while fetching summary");
   }
 });
+
+app.post("/settle", async (req, res) => {
+  const { id, email, settleEmail, amount } = req.body;
+
+  if (!id || !email || !settleEmail || !amount) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  try {
+      // Verify that both users are in the group
+      const grp = await db.collection("groups").findOne({
+          _id: new ObjectId(id),
+      });
+
+      if (!grp || !grp.members.includes(email) || !grp.members.includes(settleEmail)) {
+          return res.status(400).json({ error: 'Invalid group or users' });
+      }
+
+      // Create a new transaction to represent the settlement
+      const settlementTransaction = {
+          group: id,
+          towhom: settleEmail,
+          involved: [email],
+          amount: amount,
+          isSettlement: true,
+          date: new Date()
+      };
+
+      await db.collection("transactions").insertOne(settlementTransaction);
+
+      // Fetch all transactions for the group
+      const transactions = await db
+          .collection("transactions")
+          .find({
+              group: id,
+          })
+          .toArray();
+
+      // Create email to index mapping
+      const emailToIndex = {};
+      grp.members.forEach((memberEmail, index) => {
+          emailToIndex[memberEmail] = index;
+      });
+
+      // Create an n*n matrix initialized with zeros
+      const n = grp.members.length;
+      const matrix = Array(n)
+          .fill()
+          .map(() => Array(n).fill(0));
+
+      // Update matrix based on transactions
+      transactions.forEach((transaction) => {
+          const toWhomIndex = emailToIndex[transaction.towhom];
+          transaction.involved.forEach((involvedPerson) => {
+              const involvedIndex = emailToIndex[involvedPerson];
+              matrix[involvedIndex][toWhomIndex] += transaction.amount;
+              matrix[toWhomIndex][involvedIndex] -= transaction.amount;
+          });
+      });
+
+      // Calculate personal summary for the settling user
+      const userIndex = emailToIndex[email];
+      const personalSummary = grp.members.reduce((summary, memberEmail, index) => {
+          if (memberEmail !== email) {
+              const amount = matrix[userIndex][index];
+              if (amount !== 0) {
+                  summary[memberEmail] = amount;
+              }
+          }
+          return summary;
+      }, {});
+
+      res.status(200).json({
+          message: 'Settlement successful',
+          email: email,
+          summary: personalSummary
+      });
+  } catch (error) {
+      console.error("Error in settlement:", error);
+      res.status(500).send("An error occurred during settlement");
+  }
+});

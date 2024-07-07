@@ -118,7 +118,22 @@ function Group() {
             fetchSummary();
         }
     };
-
+    const handleSettle = async (settleEmail, settleAmount) => {
+        try {
+            const response = await axios.post("http://localhost:3001/settle", {
+                id: id,
+                email: emailFromLogin,
+                settleEmail: settleEmail,
+                amount: settleAmount
+            });
+            console.log("Settlement response:", response.data);
+            // Refresh the summary after settling
+            fetchSummary();
+        } catch (error) {
+            console.error("Error settling amount:", error);
+            alert("Failed to settle amount. Please try again.");
+        }
+    };
     const renderTransactions = () => (
         <ul className="list-group">
             {transactions.map((transaction) => {
@@ -155,11 +170,19 @@ function Group() {
             {summary ? (
                 <ul className="list-group">
                     {Object.entries(summary.summary).map(([email, amount]) => (
-                        <li className="list-group-item" key={email}>
-                            <span>{email}: {amount > 0 ? 'You owe ' : 'Owes you '}</span>
-                            <span className={amount > 0 ? 'text-danger' : 'text-success'}>
-                                ₹{Math.abs(amount)}
-                            </span>
+                        <li className="list-group-item d-flex justify-content-between align-items-center" key={email}>
+                            <div>
+                                <span>{email}: {amount > 0 ? 'You owe ' : 'Owes you '}</span>
+                                <span className={amount > 0 ? 'text-danger' : 'text-success'}>
+                                    ₹{Math.abs(amount)}
+                                </span>
+                            </div>
+                            <button 
+                                className="btn btn-sm btn-outline-primary"
+                                onClick={() => handleSettle(email, Math.abs(amount))}
+                            >
+                                Settle
+                            </button>
                         </li>
                     ))}
                 </ul>
