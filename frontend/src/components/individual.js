@@ -145,16 +145,18 @@ function Group() {
 const renderTransactions = () => (
     <ul className="list-group">
         {transactions.filter(transaction => !transaction.isSettlement).map((transaction) => {
+            var a=transaction.amount;
             let transactionClass = 'transaction-not-involved';
             if (transaction.towhom === emailFromLogin) {
                 transactionClass = 'transaction-owed';
+                a=transaction.amount*(transaction.involved.length);
             } else if (transaction.involved.includes(emailFromLogin)) {
                 transactionClass = 'transaction-involved';
             }
 
             return (
                 <li className={`list-group-item ${transactionClass}`} key={transaction._id}>
-                    <span>Amount: {transaction.amount}</span>
+                    <span>Amount: {a}</span>
                 </li>
             );
         })}
