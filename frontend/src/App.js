@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Groups from './components/Groups.js'
 import Group from './components/individual.js'
 const CLIENT_ID = '716338759481-3t52ihgb9pa4ifk96mjnlehh8c0idr07.apps.googleusercontent.com';
+
 function App() {
 
   return (
@@ -23,9 +24,7 @@ function App() {
         <Route exact path="/contact" element={<Contacts />} />
         <Route exact path="/login" element={<Login/>} />
         <Route exact path ="/group" element={<Groups/>}/>
-        <Route exact path="/groups/:id" element={<Group />} />
-
-        
+        <Route exact path="/groups/:id" element={<Group />} /> 
     </Routes>
     </Router>
     </GoogleOAuthProvider>
