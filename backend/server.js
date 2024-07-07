@@ -491,7 +491,7 @@ app.post("/summary", async (req, res) => {
 });
 
 app.post("/settle", async (req, res) => {
-  const { id, email, settleEmail, amount } = req.body;
+  const { id, email, settleEmail, amount,flag } = req.body;
 
   if (!id || !email || !settleEmail || !amount) {
       return res.status(400).json({ error: 'Missing required parameters' });
@@ -508,16 +508,30 @@ app.post("/settle", async (req, res) => {
       }
 
       // Create a new transaction to represent the settlement
-      const settlementTransaction = {
-          group: id,
-          towhom: settleEmail,
-          involved: [email],
-          amount: amount,
-          isSettlement: true,
-          date: new Date()
-      };
+      let settlementTransaction;
 
-      await db.collection("transactions").insertOne(settlementTransaction);
+if (flag) {
+  settlementTransaction = {
+    group: id,
+    towhom: email,
+    involved: [settleEmail],
+    amount: amount,
+    isSettlement: true,
+    date: new Date()
+  };
+} else {
+  settlementTransaction = {
+    group: id,
+    towhom: settleEmail,
+    involved: [email],
+    amount: amount,
+    isSettlement: true,
+    date: new Date()
+  };
+}
+
+await db.collection("transactions").insertOne(settlementTransaction);
+
 
       // Fetch all transactions for the group
       const transactions = await db

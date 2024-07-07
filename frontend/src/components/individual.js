@@ -119,12 +119,20 @@ function Group() {
         }
     };
     const handleSettle = async (settleEmail, settleAmount) => {
+        console.log(settleAmount)
+        var flag=0;
+        if(settleAmount>0)
+        {
+            flag=1
+        }
+        settleAmount=Math.abs(settleAmount)
         try {
             const response = await axios.post("http://localhost:3001/settle", {
                 id: id,
                 email: emailFromLogin,
                 settleEmail: settleEmail,
-                amount: settleAmount
+                amount: settleAmount,
+                flag: flag
             });
             console.log("Settlement response:", response.data);
             // Refresh the summary after settling
@@ -179,7 +187,7 @@ function Group() {
                             </div>
                             <button 
                                 className="btn btn-sm btn-outline-primary"
-                                onClick={() => handleSettle(email, Math.abs(amount))}
+                                onClick={() => handleSettle(email, (amount))}
                             >
                                 Settle
                             </button>
