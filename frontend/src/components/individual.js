@@ -142,24 +142,25 @@ function Group() {
             alert("Failed to settle amount. Please try again.");
         }
     };
-    const renderTransactions = () => (
-        <ul className="list-group">
-            {transactions.map((transaction) => {
-                let transactionClass = 'transaction-not-involved';
-                if (transaction.towhom === emailFromLogin) {
-                    transactionClass = 'transaction-owed';
-                } else if (transaction.involved.includes(emailFromLogin)) {
-                    transactionClass = 'transaction-involved';
-                }
+const renderTransactions = () => (
+    <ul className="list-group">
+        {transactions.filter(transaction => !transaction.isSettlement).map((transaction) => {
+            let transactionClass = 'transaction-not-involved';
+            if (transaction.towhom === emailFromLogin) {
+                transactionClass = 'transaction-owed';
+            } else if (transaction.involved.includes(emailFromLogin)) {
+                transactionClass = 'transaction-involved';
+            }
 
-                return (
-                    <li className={`list-group-item ${transactionClass}`} key={transaction._id}>
-                        <span>Amount: {transaction.amount}</span>
-                    </li>
-                );
-            })}
-        </ul>
-    );
+            return (
+                <li className={`list-group-item ${transactionClass}`} key={transaction._id}>
+                    <span>Amount: {transaction.amount}</span>
+                </li>
+            );
+        })}
+    </ul>
+);
+
 
     const fetchSummary = async () => {
         console.log("this called");
